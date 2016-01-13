@@ -1,5 +1,7 @@
-cfmlMatch=$(grep -E "cffunction\s+\w" "$1" | grep -vE "<\!--|//|\* @|init" | awk -F'"' '$0=$2' | awk '$1="\."$1"\("' | awk -v RS="" -v OFS='|' '$1=$1')
-cfscriptMatch=$(grep -E " function\s+\w" "$1" | grep -vE "<\!--|//|\* @|init" | grep -Eo " function .*\(" | awk -F'(' '{print $1}' | awk -F"function " '{print $2"\("}' | awk '$1="\."$1' | awk -v RS="" -v OFS='|' '$1=$1')
+#cfmlMatch=$(grep -E "cffunction\s+\w" "$1" | grep -vE "<\!--|//|\* @|init" | awk -F'"' '$0=$2' | awk '$1="\."$1"\("' | awk -v RS="" -v OFS='|' '$1=$1')
+cfscriptMatch=$(grep -E " function\s+\w" "$1" | grep -vE "<\!--|//|\* @|init" | grep -Eo " function .*(" | awk -F'(' '{print $1}' | awk -F"function " '{print $2"\("}' | awk '$1="\."$1' | awk -v RS="" -v OFS='|' '$1=$1'
+
+exit
 
 if [[ ! -z $cfmlMatch && ! -z $cfscriptMatch ]]; then
 	allFunctions="$cfmlMatch|$cfscriptMatch"
@@ -70,11 +72,11 @@ declare -a funcFoundIn
 for i in "${arrFunctions[@]}"
 do
         if [[ $externalFiles == *${i:0}* ]]; then
-                funcFoundOut+=$(echo "${i:0}" | sed 's/.$/ /')
+                funcFoundOut+=$(echo "${i:0}" | sed 's/.$//')
         elif [[ $revisedInternal == *${i:1}* ]]; then
-		funcFoundIn+=$(echo "${i:1}" | sed 's/.$/ /')
+		funcFoundIn+=$(echo "${i:1}" | sed 's/.$//')
 	else
-                notFound+=$(echo "${i:1}" | sed 's/.$/ /')
+                notFound+=("${i:1}")
         fi
 done
 
@@ -82,11 +84,11 @@ num=0
 for i in "${arrURLMethodCalls[@]}"
 do
         if [[ $externalFiles == *${i}* ]]; then
-                funcFoundOut+=$(echo "${i}" | sed 's/.$/ /')
+                funcFoundOut+=("${i}")
 		deleteFunc=$(echo ${arrFunctions[$num]} | awk '{print substr($1,2); }')
-		notFound=$(echo "${notFound[@]/$deleteFunc}" | sed 's/.$/ /')
+		notFound=( "${notFound[@]/$deleteFunc}" )
         elif [[ $revisedInternal == *${i:1}* ]]; then
-                funcFoundIn+=$(echo "${i}" | sed 's/.$/ /')
+                funcFoundIn+=("${i}")
         fi
 	num=$((num+1))
 done
@@ -103,7 +105,7 @@ echo
 echo Functions searched 
 echo
 echo "-------------------------------------------------------------------------------------------------------"
-printf %s ${allFunctions[*]} | sed 's/[.(]//g' 
+echo $allFunctions
 echo "-------------------------------------------------------------------------------------------------------"
 echo
 echo Functions found externally
