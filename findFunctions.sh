@@ -1,5 +1,5 @@
 cfmlMatch=$(grep -E "cffunction\s+\w" "$1" | grep -vE "<\!--|//|\* @|init" | awk -F'"' '$0=$2' | awk '$1="\."$1' | awk -v RS="" -v OFS='|' '$1=$1')
-cfscriptMatch=$(grep -E " function\s+\w" "$1" | grep -vE "<\!--|@//|\* @|init" | awk -F'(' '{print $1}' | awk -F"function " '{print $2}' | awk '$1="\."$1' | awk -v RS="" -v OFS='|' '$1=$1')
+cfscriptMatch=$(grep -E " function\s+\w" "$1" | grep -vE "<\!--|//|\* @|init" | grep -Eo " function .*\(" | awk -F'(' '{print $1}' | awk -F"function " '{print $2}' | awk '$1="\."$1' | awk -v RS="" -v OFS='|' '$1=$1')
 
 if [[ ! -z $cfmlMatch && ! -z $cfscriptMatch ]]; then
 	allFunctions="$cfmlMatch|$cfscriptMatch"
