@@ -29,6 +29,8 @@ urlMethodCalls=$(printf "%s|" ${arrURLMethodCalls[*]} | awk '{print substr($0, 1
 #echo ${arrURLMethodCalls[*]}
 #exit
 
+urlCall=$(echo $1 | awk -F"assets" '{print $2}')
+
 echo
 echo Functions found
 echo
@@ -49,8 +51,6 @@ echo
 echo "-------------------------------------------------------------------------------------------------------"
 echo
 
-
-urlCall=$(echo $1 | awk -F"assets" '{print $2}')
 echo "Functions being called within itself $urlCall if any..."
 echo
 echo "-------------------------------------------------------------------------------------------------------"
@@ -112,8 +112,13 @@ echo
 echo "Files that instantiate or call $urlCall directly..."
 echo
 echo "-------------------------------------------------------------------------------------------------------"
-whatCalls=$(echo $1 | awk -F"assets" '{print "assets"$2}' | awk -F".cfc$" -v OFS='' '$1=$1' | awk -F"/" -v OFS="." '$1=$1')
+whatCalls=$(echo $1 | awk -F"assets" '{print "assets"$2}' | awk -F"." '{print $1}' | awk -F"/" -v OFS="." '$1=$1')
+echo $whatCalls
 grep --exclude="$1" --include=*.{cfc,cfm,js} -ErnH "$whatCalls|urlCall" "$2"
+echo fuzzy matching....
+fuzzyCalls=$(echo $1 | awk -F"/" '{print $NF}' |  awk -F"." '{print $1"\\\("}')
+grep --exclude="$1" --include=*.{cfc,cfm,js} -ErnH "$fuzzyCalls" "$2"| grep --exclude="$1" --include=*.{cfc,cfm,js} -vi "$whatCalls|urlCall"
+echo 
 echo "-------------------------------------------------------------------------------------------------------"
 echo
 echo Functions searched 
@@ -122,19 +127,19 @@ echo "--------------------------------------------------------------------------
 printf %s ${allFunctions[*]} | sed 's/[.(]//g' 
 echo "-------------------------------------------------------------------------------------------------------"
 echo
-echo Functions found externally
+echo Functions found externally that are called
 echo
 echo "-------------------------------------------------------------------------------------------------------"
 echo ${funcFoundOut[*]}
 echo "-------------------------------------------------------------------------------------------------------"
 echo
-echo Functions found internally 
+echo Functions found internally that are called
 echo
 echo "-------------------------------------------------------------------------------------------------------"
 echo ${funcFoundIn[*]}
 echo "-------------------------------------------------------------------------------------------------------"
 echo
-echo Functions NOT called 
+echo Functions NOT called by anything anywhere
 echo "-------------------------------------------------------------------------------------------------------"
 echo ${notFound[*]}
 echo "-------------------------------------------------------------------------------------------------------"
