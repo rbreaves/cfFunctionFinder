@@ -10,7 +10,9 @@ elif [[ ! -z $cfmlMatch ]]; then
 else
 	echo "No Matches found. Exiting"
 	exit
-fi 
+fi
+
+escapedAllFunctions=$(printf %s ${allFunctions} | awk '{gsub(/[ \(]/,"\\(");print}')
 
 arrFunctions=(${allFunctions//|/ })
 declare -a arrURLMethodCalls
@@ -33,11 +35,25 @@ echo
 echo "-------------------------------------------------------------------------------------------------------"
 printf %s ${allFunctions[*]} | awk '{gsub(/[ \(]/,"");print}'
 echo "-------------------------------------------------------------------------------------------------------"
- urlCall=$(echo $1 | awk -F"assets" '{print $2}')
+
+echo
+echo External files with SIMILAR named functions to $urlCall ...
+echo
+echo "-------------------------------------------------------------------------------------------------------"
+#echo grep --exclude="\"$1\"" --include=*.{cfc,cfm} -ErnH "$(echo $escapedAllFunctions | sed 's/\./function /g')|$(echo $escapedAllFunctions)" "\"$2\""
+#exit
+externalFiles=$(grep --exclude="$1" --include=*.{cfc,cfm} -ErnH "$(echo $escapedAllFunctions | sed 's/\./function /g')|$(echo $escapedAllFunctions | sed 's/\./name=\\\"/g' | sed 's/[\\(]//g')" "$2")
+echo
+printf %s "${externalFiles}"
+echo
+echo "-------------------------------------------------------------------------------------------------------"
+echo
+
+
+urlCall=$(echo $1 | awk -F"assets" '{print $2}')
 echo "Functions being called within itself $urlCall if any..."
 echo
 echo "-------------------------------------------------------------------------------------------------------"
-escapedAllFunctions=$(printf %s ${allFunctions} | awk '{gsub(/[ \(]/,"\\(");print}')
 internalCalls=$(grep -EnH "$escapedAllFunctions" "$1" | grep -vE "<\!--|//|\* @|function| name=")
 echo $internalCalls
 revisedInternal=$internalCalls
@@ -57,7 +73,7 @@ echo
 echo External files referencing functions inside $urlCall ...
 echo
 echo "-------------------------------------------------------------------------------------------------------"
-externalFiles=$(grep --exclude="$1" --include=*.{cfc,cfm} -ErnH "$escapedAllFunctions|$urlMethodCalls" "$2")
+externalFiles=$(grep --exclude="$1" --include=*.{cfc,cfm} -ErnH "$(echo $escapedAllFunctions | sed 's/\./\\./g')|$urlMethodCalls" "$2")
 echo
 printf %s "${externalFiles}"
 echo
