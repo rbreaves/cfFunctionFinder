@@ -84,7 +84,7 @@ displayInternalCalls(){
 }
 
 externalCalls(){
-	methodName=$(echo $instantiateCheck | awk -F"var" '{print $NF}' |  awk -F"=" '{print $1}' | awk -F, '{gsub(/ /, "");print}' | awk -v RS="" -v OFS='|' '$1=$1')
+	methodName=$(echo "$instantiateCheck" | awk -F"var" '{print $NF}' |  awk -F"=" '{print $1}' | awk -F, '{gsub(/ /, "");print}' | awk -v RS="" -v OFS='|' '$1=$1')
 	#fileNames=$(echo $instantiateCheck | awk -F":" '{print $1}' | awk -F, '{gsub(/ /, "");print}' | awk -v RS="" -v OFS='|' '$1=$1')
 	#fuzzyMethodName=$(echo $fuzzyMatch | awk -F"var" '{print $NF}' |  awk -F"=" '{print $1}' | awk -F, '{gsub(/ /, "");print}' | awk -v RS="" -v OFS='|' '$1=$1')
 	#fuzzyFileNames=$(echo $fuzzyMatch | awk -F":" '{print $1}' | awk -F, '{gsub(/ /, "");print}' | awk -v RS="" -v OFS='|' '$1=$1')
@@ -94,47 +94,55 @@ externalCalls(){
 	#	methodName="$fuzzyMethodName"
 	#fi
 
-	arrMethodName=(${methodName//|/ })
-	num=0
-	for i in "${arrMethodName[@]}"
-	do
-		num2=0
-		for c in "${arrFunctions[@]}"
+	if [[ ! -z "${methodName}" ]]; then
+		arrMethodName=(${methodName//|/ })
+		num=0
+		for i in "${arrMethodName[@]}"
 		do
-			if [[ num -eq 0 && num2 -eq 0 ]]; then
-				allFunctions="${i}${c}"
-			else
-				allFunctions+="|${i}${c}"
-			fi
-			num2=$((num+1))
+			num2=0
+			for c in "${arrFunctions[@]}"
+			do
+				if [[ num -eq 0 && num2 -eq 0 ]]; then
+					allExtFunctions="${i}${c}"
+				else
+					allExtFunctions+="|${i}${c}"
+				fi
+				num2=$((num+1))
+			done
+			num=$((num+1))
 		done
-		num=$((num+1))
-	done
-	escapedExtFunctions=$(escapeSymbol "$allFunctions")
+	escapedExtFunctions=$(escapeSymbol "$allExtFunctions")
 	grep --exclude="$1" --include=*.{cfc,cfm} -ErnH "$(echo $escapedExtFunctions | sed 's/\./\\./g')""|$urlMethodCalls" "$2"
+	fi
+	#echo "$instantiateCheck"
 }
 
 fuzzyExternalCalls(){
-	methodName=$(echo $fuzzyMatch | awk -F"var" '{print $NF}' |  awk -F"=" '{print $1}' | awk -F, '{gsub(/ /, "");print}' | awk -v RS="" -v OFS='|' '$1=$1')
 
-	arrMethodName=(${methodName//|/ })
-	num=0
-	for i in "${arrMethodName[@]}"
-	do
-		num2=0
-		for c in "${arrFunctions[@]}"
+	if [[ ! -z "$fuzzyMatch" ]]; then
+		methodName=$(echo "$fuzzyMatch" | awk -F"var" '{print $NF}' |  awk -F"=" '{print $1}' | awk -F, '{gsub(/ /, "");print}' | awk -v RS="" -v OFS='|' '$1=$1')
+		# echo hello
+		# echo $methodName
+		arrMethodName=(${methodName//|/ })
+		num=0
+		for i in "${arrMethodName[@]}"
 		do
-			if [[ num -eq 0 && num2 -eq 0 ]]; then
-				allFunctions="${i}${c}"
-			else
-				allFunctions+="|${i}${c}"
-			fi
-			num2=$((num+1))
+			num2=0
+			for c in "${arrFunctions[@]}"
+			do
+				if [[ num -eq 0 && num2 -eq 0 ]]; then
+					allExtFunctions="${i}${c}"
+				else
+					allExtFunctions+="|${i}${c}"
+				fi
+				num2=$((num+1))
+			done
+			num=$((num+1))
 		done
-		num=$((num+1))
-	done
-	escapedExtFunctions=$(escapeSymbol "$allFunctions")
-	grep --exclude="$1" --include=*.{cfc,cfm} -ErnH "$(echo $escapedExtFunctions | sed 's/\./\\./g')""" "$2"
+		escapedExtFunctions=$(escapeSymbol "$allExtFunctions")
+		#echo "$(echo $escapedExtFunctions | sed 's/\./\\./g')"
+		grep --exclude="$1" --include=*.{cfc,cfm} -ErnH "$(echo $escapedExtFunctions | sed 's/\./\\./g')""" "$2"
+	fi
 }
 
 
@@ -168,8 +176,6 @@ checkResults(){
 	declare -a funcFuzzyFoundOut
 	declare -a funcFoundIn
 
-	echo "$fuzzyExternalResults"
-
 	for i in "${arrFunctions[@]}"
 	do
 			oneFunction=$(echo "${i}" | sed s/.$//)
@@ -192,6 +198,7 @@ checkResults(){
 }
 
 instantiateCheck(){
+	#echo "$fullCFCPath|$urlCall"
 	grep --exclude="$1" --include=*.{cfc,cfm,js} -ErnH "$fullCFCPath|$urlCall" "$2"
 }
 
@@ -273,7 +280,10 @@ displayInstantiateCheck
 #echo externalCalls
 externalCalls=$(externalCalls "$1" "$2")
 fuzzyExternalCalls=$(fuzzyExternalCalls "$1" "$2")
+# echo "$fuzzyExternalCalls"
+# exit
 displayExternalCalls
+# exit
 
 #echo internalCalls
 internalCalls=$(internalCalls "$1")
