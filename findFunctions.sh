@@ -188,64 +188,13 @@ checkResults(){
 	        fi
 	done
 
-	# for i in "${arrFunctions[@]}"
-	# do
-	#         if [[ $fuzzyExternalResults == *${i:0}* ]]; then
-	#             	funcFuzzyFoundOut+=$(echo "${i:0}" | sed 's/.$/ /')
-	#         fi
-	# done
-
-	# num=0
-	# for i in "${arrURLMethodCalls[@]}"
-	# do
-	#         if [[ $externalCallResults == *${i}* ]]; then
-	#                 funcFoundOut+=$(echo "${i}" | sed 's/.$/ /')
-	# 				deleteFunc=$(echo ${arrFunctions[$num]} | awk '{print substr($1,2); }')
-	# 				notFound=$(echo "${notFound[@]/$deleteFunc}" | sed 's/.$/ /')
-	#         elif [[ $internalCallResults == *${i:1}* ]]; then
-	#                 funcFoundIn+=$(echo "${i}" | sed 's/.$/ /')
-	#         fi
-	# 	num=$((num+1))
-	# done
-
-	allResults "$funcFoundOut" "$funcFuzzyFoundOut" "$funcFoundIn" "$notFound"
-
-}
-
-checkResults2(){
-	declare -a notFound
-	declare -a funcFoundOut
-	declare -a funcFoundIn
-	for i in "${arrFunctions[@]}"
-	do
-	        if [[ $externalCalls == *${i:0}* ]]; then
-	                funcFoundOut+=$(echo "${i:0}" | sed 's/.$/ /')
-	        elif [[ $internalCalls == *${i:1}* ]]; then
-					funcFoundIn+=$(echo "${i:1}" | sed 's/.$/ /')
-			else
-	                notFound+=$(echo "${i:1}" | sed 's/.$/ /')
-	        fi
-	done
-
-	num=0
-	for i in "${arrURLMethodCalls[@]}"
-	do
-	        if [[ $externalCalls == *${i}* ]]; then
-	                funcFoundOut+=$(echo "${i}" | sed 's/.$/ /')
-					deleteFunc=$(echo ${arrFunctions[$num]} | awk '{print substr($1,2); }')
-					notFound=$(echo "${notFound[@]/$deleteFunc}" | sed 's/.$/ /')
-	        elif [[ $internalCalls == *${i:1}* ]]; then
-	                funcFoundIn+=$(echo "${i}" | sed 's/.$/ /')
-	        fi
-		num=$((num+1))
-	done
-
-	allResults "$funcFoundOut" "$funcFoundIn" "$notFound"
+	displayAllResults "$funcFoundOut" "$funcFuzzyFoundOut" "$funcFoundIn" "$notFound"
 }
 
 instantiateCheck(){
 	grep --exclude="$1" --include=*.{cfc,cfm,js} -ErnH "$fullCFCPath|$urlCall" "$2"
 }
+
 fuzzyMatch(){
 	fuzzyCalls=$(echo $1 | awk -F"/" '{print $NF}' |  awk -F"." '{print $1"\\\("}')
 	grep --exclude="$1" --include=*.{cfc,cfm,js} -ErnH "$fuzzyCalls" "$2" | grep -vE "$fullCFCPath|$urlCall"
@@ -264,23 +213,7 @@ displayInstantiateCheck(){
 	echo "-------------------------------------------------------------------------------------------------------"
 }
 
-fuzzyFunctionCheck(){
-	arrFuzzyMatches=(${allFuzzyMatches//|/ })
-	declare -a arrFuzzyCalls
-	echo ${arrFuzzyMatches[*]}
-
-	num=0
-	for i in "${arrFuzzyMatches[@]}"
-	do
-		for c in "${arrFunctions[@]}"
-		do
-			arrFuzzyCalls[$num]=$(echo ${i}${c})
-			num=$((num+1))
-		done
-	done
-}
-
-allResults(){
+displayAllResults(){
 	funcFoundOut=$1
 	funcFuzzyFoundOut=$2
 	funcFoundIn=$3
