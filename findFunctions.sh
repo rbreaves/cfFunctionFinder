@@ -6,9 +6,10 @@ rootPath="co/app"
 cfcAssets="assets"
 
 findFunctionByType(){
+	type="$2"
 	#Note: must install GNU Grep for grep -P - Perl based regex, it has better features
-	cfscriptMatch=$(grep -oP "($2\s.*?function\s).*?(?=\s?\()" "$1" | awk 'NF>1{print $NF}' | awk -v RS="" -v OFS='|' '$1=$1')
-	cfmlMatch=$(sed -n '/<cffunction/,/">/p' "$1" | tr -d "\t" | tr "\r\n" " " | awk '{ gsub("<cff","\n<cff",$0); print $0 }' | grep -vE "<\!--|//|\* @|init" | grep "$2" | grep -oP "(cffunction\s?\sname\=\").*?(?=\")" | awk -F'\"' '{print $2}')
+	cfscriptMatch=$(grep -oP "($type\s.*?function\s).*?(?=\s?\()" "$1" | awk 'NF>1{print $NF}' | awk -v RS="" -v OFS='|' '$1=$1')
+	cfmlMatch=$(sed -n '/<cffunction/,/">/p' "$1" | tr -d "\t" | tr "\r\n" " " | awk '{ gsub("<cff","\n<cff",$0); print $0 }' | grep "$type" | grep -oP "(cffunction\s?\sname\=\").*?(?=\")" | awk -F'\"' '{print $2}')
 
 	if [[ ! -z $cfmlMatch && ! -z $cfscriptMatch ]]; then
 		theFunctions="$cfmlMatch|$cfscriptMatch"
@@ -21,6 +22,7 @@ findFunctionByType(){
 		#echo "No Matches found. Exiting"
 		#exit
 	fi
+
 	echo "$theFunctions"
 }
 
@@ -101,32 +103,35 @@ internalCalls(){
 	internalPublic=$(printf %s"\s?\(|" "${arrPublic[@]}" | sed s'/.$//')
 	internalRemote=$(printf %s"\s?\(|" "${arrRemote[@]}" | sed s'/.$//')
 
-	if [[ ! -z "$internalPrivate" && ! -z "$internalPublic" && ! -z "$internalRemote" ]]; then
+	tokenString="\\s?\("
+
+	if [[ "$internalPrivate" != "$tokenString" && "$internalPublic" != "$tokenString" && "$internalRemote" != "$tokenString" ]]; then
 		allInternalCalls=$(printf %s "$internalPrivate|$internalPublic|$internalRemote")
-	elif [ ! -z "$internalPrivate"]]; then
+	elif [[ "$internalPrivate" != "$tokenString" ]]; then
 		allInternalCalls=$(printf %s "$internalPrivate")
-		if [[ ! -z "$internalRemote" ]]; then
+		if [[ "$internalRemote" != "$tokenString" ]]; then
 			allInternalCalls+=$(printf %s "|$internalRemote")
-		elif [[ ! -z "$internalPublic" ]]; then
+		elif [[ "$internalPublic" != "$tokenString" ]]; then
 			allInternalCalls+=$(printf %s "|$internalPublic")
 		fi
-	elif [ ! -z "$internalRemote" ]]; then
+	elif [[ "$internalRemote" != "$tokenString" ]]; then
 		allInternalCalls=$(printf %s "$internalRemote")
-		if [[ ! -z "$internalPrivate" ]]; then
+		if [[ "$internalPrivate" != "$tokenString" ]]; then
 			allInternalCalls+=$(printf %s "|$internalPrivate")
-		elif [[ ! -z "$internalPublic" ]]; then
+		elif [[ "$internalPublic" != "$tokenString" ]]; then
 			allInternalCalls+=$(printf %s "|$internalPublic")
 		fi
-	elif [ ! -z "$internalPublic"]]; then
+	elif [[ "$internalPublic" != "$tokenString" ]]; then
 		allInternalCalls=$(printf %s "$internalPrivate")
-		if [[ ! -z "$internalRemote" ]]; then
+		if [[ "$internalRemote" != "$tokenString" ]]; then
 			allInternalCalls+=$(printf %s "|$internalRemote")
-		elif [[ ! -z "$internalPrivate" ]]; then
+		elif [[ "$internalPrivate" != "$tokenString" ]]; then
 			allInternalCalls+=$(printf %s "|$internalPrivate")
 		fi
 	fi
 
-	if [[ ! -z "$allInternalCalls" ]]; then
+	if [[ "$allInternalCalls" != "$tokenString" ]]; then
+		#echo "grep -PnH \"$allInternalCalls\" \"$1\" | grep -vE \"<\!--|//|\* @|public|private|remote| name=\""
 		internalCalls=$(grep -PnH "$allInternalCalls" "$1" | grep -vE "<\!--|//|\* @|public|private|remote| name=")
 		revisedInternal=$internalCalls
 		for i in "${allInternalCalls[@]}"
@@ -566,13 +571,14 @@ displayAllResults(){
 	echo "-------------------------------------------------------------------------------------------------------"
 	echo
 
-	echo "Filename: "$filename" FolderPath: "$folderpath" Lines of code: "$lines" instantiated: "$instantiatedTotal" functions total: "$totalCount" remote: "$remoteCount" remote unused: "$remoteNFCount" public: "$publicCount" public unused: "$publicNFCount" private: "$privateCount" private unused: "$privateNFCount
-	echo $filename","$folderpath","$lines","$instantiatedTotal","$totalCount","$remoteCount","$remoteNFCount","$publicCount","$publicNFCount","$privateCount","$privateNFCount
+	#echo "Filename: "$filename" FolderPath: "$folderpath" Lines of code: "$lines" instantiated: "$instantiatedTotal" functions total: "$totalCount" remote: "$remoteCount" remote unused: "$remoteNFCount" public: "$publicCount" public unused: "$publicNFCount" private: "$privateCount" private unused: "$privateNFCount
+	
+	printf '%s\n' "$filename,$folderpath,$lines,$instantiatedTotal,$totalCount,$remoteCount,$remoteNFCount,$publicCount,$publicNFCount,$privateCount,$privateNFCount" >> summary.csv
 
 }
 
 filename=$(echo "$1" | awk -F"/" '{print $NF}')
-folderpath=$(echo "$1" | awk -F"$rootPath" '{print $2}' | awk -v f=$filename '{gsub(f, "");print}')
+folderpath=$(echo "$1" | awk -F"$rootPath" '{print $2}' | awk -v f="$filename" '{gsub(f, "");print}')
 lines=$(wc -l < "$1" | tr -d '[[:space:]]')
 
 publicFunctions=$(findFunctionByType "$1" "public")
