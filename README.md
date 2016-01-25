@@ -6,7 +6,7 @@ An example of how to run it for a specific file is "./findFunctions.sh /path/to/
 
 A report will be generated with all information that appears to be relevant. Please report any bugs or suggestions.
 
-** Search an entire directory**
+**Search an entire directory**
 
 An example of how to do that is the following.
 
