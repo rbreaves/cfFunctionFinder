@@ -17,5 +17,6 @@ do
 	folderPath="$2"
 	sh ./findFunctions.sh "$fullFilename" "$folderPath"
 	num=$((num+1))
+	read -p "Press [Enter] key to continue to next function..."
 done
 

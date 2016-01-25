@@ -2,7 +2,7 @@
 
 #Set the folder name of the root path here
 #example /Users/JoeBob/VM/Linux/coolsite.co/app/assets
-rootPath="co/app"
+rootPath="coolsite.co"
 cfcAssets="assets"
 
 findFunctionByType(){
@@ -162,7 +162,7 @@ externalCalls(){
 	if [[ ! -z "${instantiateCheck}" ]]; then
 		fileNames=$(echo "$instantiateCheck" | awk -F":" '{print $1}' | tr '\n' '|' | sed s'/.$//')
 		fileTypes=$(echo "$instantiateCheck" | awk -F":" '{print $1}' | awk -F"." '{print $NF}' | tr '\n' '|' | sed s'/.$//')
-		methodName=$(echo "$instantiateCheck" | awk -F"var" '{print $NF}' |  awk -F"=" '{print $1}' | awk -F, '{gsub(/ /, "");print}' | tr '\n' '|' | sed s'/.$//')
+		methodName=$(echo "$instantiateCheck" | awk -F":" '{print $NF}' | awk -F"var" '{print $NF}' |  awk -F"=" '{print $1}' | awk -F, '{gsub(/ /, "");print}' | tr '\n' '|' | sed s'/.$//' | tr -d '[[:space:]]')
 
 		if [[ ! -z "${fileTypes}" && ! -z "${methodName}" ]]; then
 			OIFS=$IFS;
@@ -221,16 +221,21 @@ externalCalls(){
 						done
 						#echo $num
 						#echo "${arrFileNames[$num]}"
-						functionSet+=$(grep -PnH "$extFunctions" "${arrFileNames[$num]}")
+						#echo "for loop"
+						#echo "grep -PnH --include=*.{cfc,cfm,js} \"$extFunctions\" \"${arrFileNames[$num]}\""
+						functionSet+=$(grep -PnH --include=*.{cfc,cfm,js} "$extFunctions" "${arrFileNames[$num]}")
 						num=$((num+1))
 					done
 				fi
 				printf %"s\n" "$functionSet"
+				#echo "what"
 			fi
 		else
 			echo "No known files instantiate $urlCall"
 		fi
 	fi
+	#echo "ext"
+	#echo "$functionSet"
 }
 
 fuzzyExternalCalls(){
@@ -301,7 +306,7 @@ fuzzyExternalCalls(){
 displayExternalCalls(){
 	externalFiles=$1
 	echo
-	printf %"s\n" "$(printf "${externalCalls}" | wc -l) External files referencing functions from $urlCall ...\n\n"
+	printf %"s\n" "$(printf "${externalCalls}" | wc -l) External files referencing functions from $urlCall ..."
 	echo "-------------------------------------------------------------------------------------------------------"
 	echo
 	echo "${externalCalls}"
@@ -315,6 +320,10 @@ displayExternalCalls(){
 checkResults(){
 	externalCallResults=$(echo "${externalCalls}" | tr '\n' '|' | sed s'/.$//')
 	internalCallResults=$(echo "${internalCalls}" | tr '\n' '|' | sed s'/.$//')
+
+	#echo "hello"
+	#externalCalls
+	#exit
 	# extPublicFound=()
 	# extPublicNotFound=()
 	# intPublicFound=()
@@ -422,6 +431,7 @@ fuzzyMatch(){
 displayInstantiateCheck(){
 	echo
 	echo "Files that instantiate or call $urlCall directly..."
+	echo "$fullCFCPath|$urlCall"
 	echo
 	echo "-------------------------------------------------------------------------------------------------------"
 	echo "$instantiateCheck"
@@ -552,7 +562,7 @@ displayAllResults(){
 	echo 
 	echo "-------------------------------------------------------------------------------------------------------"
 	echo
-	echo "$totalNotFound Functions NOT called by anything anywhere"
+	echo "$totalNotFound Functions NOT called by anything anywhere in $urlCall"
 	echo 
 	echo "-------------------------------------------------------------------------------------------------------"
 	echo
