@@ -223,7 +223,9 @@ externalCalls(){
 						#echo "${arrFileNames[$num]}"
 						#echo "for loop"
 						#echo "grep -PnH --include=*.{cfc,cfm,js} \"$extFunctions\" \"${arrFileNames[$num]}\""
-						functionSet+=$(grep -PnH --include=*.{cfc,cfm,js} "$extFunctions" "${arrFileNames[$num]}")
+						if [[ "$extFunctions" != "" ]]; then
+							functionSet+=$(grep -PnH --include=*.{cfc,cfm,js} "$extFunctions" "${arrFileNames[$num]}")
+						fi
 						num=$((num+1))
 					done
 				fi
@@ -417,8 +419,8 @@ checkResults(){
 
 instantiateCheck(){
 	#echo "$1" " $fullCFCPath|$urlCall"
-	#echo "grep --exclude=$1 --include=*.{cfc,cfm,js} -ErnH $fullCFCPath|$urlCall $2 | grep -vE \.git"
-	grep --exclude="$1" --include=*.{cfc,cfm,js} -ErnH "$fullCFCPath|$urlCall" "$2" | grep -vE "\.git"
+	#echo "grep --exclude=\"$1\" --include=*.{cfc,cfm,js} -PrnH \"$fullCFCPath|$urlCall|$createObject\" \"$2\" | grep -vE \"\.git\""
+	grep --exclude="$1" --include=*.{cfc,cfm,js} -PrnH "$fullCFCPath|$urlCall|$createObject" "$2" | grep -vE "\.git|<\!--|//|\* @"
 }
 
 fuzzyMatch(){
@@ -431,7 +433,6 @@ fuzzyMatch(){
 displayInstantiateCheck(){
 	echo
 	echo "Files that instantiate or call $urlCall directly..."
-	echo "$fullCFCPath|$urlCall"
 	echo
 	echo "-------------------------------------------------------------------------------------------------------"
 	echo "$instantiateCheck"
@@ -562,7 +563,9 @@ displayAllResults(){
 	echo 
 	echo "-------------------------------------------------------------------------------------------------------"
 	echo
-	echo "$totalNotFound Functions NOT called by anything anywhere in $urlCall"
+	echo "$instantiatedTotal Instantiations"
+	echo "$fuzzyTotal Fuzzy instantiations"
+	echo "$totalNotFound Functions out of $totalCount NOT called by anything anywhere in $urlCall"
 	echo 
 	echo "-------------------------------------------------------------------------------------------------------"
 	echo
@@ -587,6 +590,8 @@ displayAllResults(){
 
 }
 
+if [ -f "$1" ]; then
+
 filename=$(echo "$1" | awk -F"/" '{print $NF}')
 folderpath=$(echo "$1" | awk -F"$rootPath" '{print $2}' | awk -v f="$filename" '{gsub(f, "");print}')
 lines=$(wc -l < "$1" | tr -d '[[:space:]]')
@@ -604,6 +609,7 @@ escapedPrivate=$(escapeSymbol "arrPrivate")
 #echo createURLMethodArray
 urlMethodCalls=$(createURLMethodArray "$1")
 urlCall=$(echo "$1" | awk -F"$rootPath/$cfcAssets" '{print $2}')
+createObject=$(echo $filename | awk -F"." '{print "CreateObject\\\(\'\''component\'\'','\''.*?"$1}')
 
 #echo listFunctions
 listFunctions
@@ -615,8 +621,17 @@ listFunctions
 #echo instantiateCheck
 fullCFCPath=$(echo $1 | awk -F"$rootPath/" '{print $2}' | awk -F"." '{print $1}' | awk -F"/" -v OFS="." '$1=$1')
 instantiateCheck=$(instantiateCheck "$1" "$2")
-instantiatedTotal=$(echo "$instantiateCheck" | wc -l | tr -d '[[:space:]]')
 fuzzyMatch=$(fuzzyMatch "$1" "$2")
+if [[ "$instantiateCheck" == "" ]]; then
+	instantiatedTotal=0
+else
+	instantiatedTotal=$(echo "$instantiateCheck" | wc -l | tr -d '[[:space:]]')
+fi
+if [[ "$fuzzyMatch" == "" ]]; then
+	fuzzyTotal=0
+else
+	fuzzyTotal=$(echo "$fuzzyMatch" | wc -l | tr -d '[[:space:]]')
+fi
 displayInstantiateCheck
 
 #echo externalCalls
@@ -631,3 +646,7 @@ displayInternalCalls "$internalCalls"
 
 #echo checkResults
 checkResults
+
+else
+	echo "File does not exist!"
+fi
