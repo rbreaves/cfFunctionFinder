@@ -27,8 +27,6 @@ findFunctionByType(){
 }
 
 escapeSymbol(){
-	#printf %s $1 | awk '{gsub(/[ \(]/,"\\(");print}'
-	#printf %s $1 | sed -e 's/*.^(/\\*\\.\\^\\(/g'
 	if [[ $1 = "arrPublic" ]]; then
 		printf "%s\s?\(|" ${arrPublic[*]} | sed s'/.$//'
 	elif [[ $1 = "arrRemote" ]]; then
@@ -44,7 +42,6 @@ escapeSymbol(){
 createURLMethodArray(){
 	declare -a arrURLMethodCalls
 	num=0
-	#appendMethod="$(echo $1 | grep -Eo '[^/]+/?$' | cut -d / -f1)?method="
 	appendMethod="\?method\="
 	for i in "${arrRemote[@]}"
 	do
@@ -80,9 +77,6 @@ listFunctions(){
 externalSimilar(){
 	#echo $escapedAllFunctions
 	grep --include=*.{cfc,cfm} -ErnH "$(printf "function %s\s?\(|" ${arrPublic[*]}"|"${arrRemote[*]}"|"${arrPrivate[*]} | sed s'/.$//')" "$2" | grep -vE "$urlCall"
-	#grep --exclude="$1" --include=*.{cfc,cfm} -PrnH "$(echo $escapedAllFunctions | sed -e 's/\\\*\\.\\^\\(//g' | sed 's/\./function /g')|$(echo $escapedAllFunctions | sed -e 's/\\\*\\.\\^\\(//g' | sed 's/\./name=\\\"/g' | sed 's/[\\(]//g')" "$2"
-	#echo $escapedAllFunctions | sed -e 's/\\\*\\.\\^\\(//g'
-	#echo "grep --exclude= --include=*.{cfc,cfm} -ErnH echo $escapedAllFunctions | sed -e 's/\\\*\\.\\^\\(//g' | sed 's/\./function /g')|echo $escapedAllFunctions | sed -e 's/\\\*\\.\\^\\(//g' | sed 's/\./name=\\\"/g' | sed 's/[\\(]//g')"
 }
 
 displaySimilarFunctions(){
@@ -219,9 +213,6 @@ externalCalls(){
 							fi
 							num2=$((num+1))
 						done
-						#echo $num
-						#echo "${arrFileNames[$num]}"
-						#echo "for loop"
 						#echo "grep -PnH --include=*.{cfc,cfm,js} \"$extFunctions\" \"${arrFileNames[$num]}\""
 						if [[ "$extFunctions" != "" ]]; then
 							functionSet+=$(grep -PnH --include=*.{cfc,cfm,js} "$extFunctions" "${arrFileNames[$num]}")
@@ -230,7 +221,6 @@ externalCalls(){
 					done
 				fi
 				printf %"s\n" "$functionSet"
-				#echo "what"
 			fi
 		else
 			echo "No known files instantiate $urlCall"
@@ -312,8 +302,6 @@ displayExternalCalls(){
 	echo "-------------------------------------------------------------------------------------------------------"
 	echo
 	echo "${externalCalls}"
-	#echo "fuzzy matching..."
-	#echo "${fuzzyExternalCalls}"
 	echo
 	echo "-------------------------------------------------------------------------------------------------------"
 }
@@ -322,35 +310,6 @@ displayExternalCalls(){
 checkResults(){
 	externalCallResults=$(echo "${externalCalls}" | tr '\n' '|' | sed s'/.$//')
 	internalCallResults=$(echo "${internalCalls}" | tr '\n' '|' | sed s'/.$//')
-
-	#echo "hello"
-	#externalCalls
-	#exit
-	# extPublicFound=()
-	# extPublicNotFound=()
-	# intPublicFound=()
-	# intPublicNotFound=()
-	# extPrivateFound=()
-	# extPrivateNotFound=()
-	# intPrivateFound=()
-	# intPrivateNotFound=()
-	# extRemoteFound=()
-	# extRemoteNotFound=()
-	# intRemoteFound=()
-	# intRemoteNotFound=()
-	# publicNotFound=()
-	# remoteNotFound=()
-	# privateNotFound=()
-	#OIFS=$IFS;
-	#IFS="|";
-	#arrCalls=($externalCallResults)
-	#arrCalls+=($internalCallResults)
-	#IFS=$OIFS;
-	#arrFunctions=("${arrPublic[@]}")
-	#arrFunctions+=("${arrRemote[@]}")
-	#arrFunctions+=("${arrPrivate[@]}")
-
-	#echo "${externalCallResults[*]}" | grep -oP "getPaintEntryStats[\"\'\(\&\s\n\r]" | head -1 | grep -oP "getPaintEntryStats"
 
 	for i in "${arrPublic[@]}"
 	do
@@ -418,13 +377,11 @@ checkResults(){
 }
 
 instantiateCheck(){
-	#echo "$1" " $fullCFCPath|$urlCall"
 	#echo "grep --exclude=\"$1\" --include=*.{cfc,cfm,js} -PrnH \"$fullCFCPath|$urlCall|$createObject\" \"$2\" | grep -vE \"\.git\""
 	grep --exclude="$1" --include=*.{cfc,cfm,js} -PrnH "$fullCFCPath|$urlCall|$createObject" "$2" | grep -vE "\.git|<\!--|//|\* @"
 }
 
 fuzzyMatch(){
-	#echo "$fullCFCPath|$urlCall"
 	fuzzyCalls=$(echo $1 | awk -F"/" '{print $NF}' |  awk -F"." '{print $1"\\\(\\\)"}')
 	grep --exclude="$1" --include=*.{cfc,cfm,js} -ErnH "$fuzzyCalls" "$2" | grep -vE "$fullCFCPath|$urlCall|\.git"
 	#allFuzzyMatches=$(echo $fuzzyMatch | awk -F"var " '{print $2}' | awk -F"=" '{print $1}' | awk -F, '{gsub(/ /, "");print}' | awk -v RS="" -v OFS='|' '$1=$1')
@@ -500,91 +457,113 @@ displayAllResults(){
 	privateNFCount=$(clearNum "${privateNotFound[*]}")
 	totalNotFound=$((remoteNFCount+publicNFCount+privateNFCount))
 
-	# # if [[ "${#privateNotFound[@]}" == 1 &&  "${privateNotFound[@]}" == "" ]]; then
-	# # 	privateNFCount=0
-	# # else
-	# # 	privateNFCount="${#privateNotFound[@]}"
-	# # fi
-
 	echo
 	echo "$totalCount Functions searched" 
 	echo
 	echo "-------------------------------------------------------------------------------------------------------"
-	echo " "
-	echo " ** $remoteCount Remote **"
-	echo " "
-	printf %s" " ${arrRemote[*]}
-	echo " "
-	echo " "
-	echo " ** $publicCount Public **"
-	echo " "
-	printf %s" " ${arrPublic[*]}
-	echo " "
-	echo " "
-	echo " ** $privateCount Private **"
-	echo " "
-	printf %s" " ${arrPrivate[*]}
-	echo " "
-	echo "-------------------------------------------------------------------------------------------------------"
+	if [[ $totalCount -gt 0 ]]; then
+		echo " "
+		if [[ $remoteCount -gt 0 ]]; then
+			echo " ** $remoteCount Remote **"
+			echo " "
+			printf %s" " ${arrRemote[*]}
+			echo " "
+		fi
+		if [[ $publicCount -gt 0 ]]; then
+			echo " ** $publicCount Public **"
+			echo " "
+			printf %s" " ${arrPublic[*]}
+			echo " "
+		fi
+		if [[ $privateCount -gt 0 ]]; then
+			echo " ** $privateCount Private **"
+			echo " "
+			printf %s" " ${arrPrivate[*]}
+			echo " "
+		fi
+		echo "-------------------------------------------------------------------------------------------------------"
+	fi
 	echo 
 	echo "$extTotal Functions found externally"
 	echo
 	echo "-------------------------------------------------------------------------------------------------------"
-	echo
-	echo " ** $extRemoteCount Remote **"
-	echo
-	echo "${extRemoteFound[*]}"
-	echo
-	echo " ** $extPrivateCount Public **"
-	echo
-	echo "${extPublicFound[*]}"
-	echo
-	echo " ** $extPrivateCount Private **"
-	echo 
-	echo "${extPrivateFound[*]}"
-	echo 
-	echo "-------------------------------------------------------------------------------------------------------"
+	if [[ $extTotal -gt 0 ]]; then
+		echo
+		if [[ $extRemoteCount -gt 0 ]]; then
+			echo " ** $extRemoteCount Remote **"
+			echo
+			echo "${extRemoteFound[*]}"
+			echo
+		fi
+		if [[ $extPublicCount -gt 0 ]]; then
+			echo " ** $extPublicCount Public **"
+			echo
+			echo "${extPublicFound[*]}"
+			echo
+		fi
+		if [[ $extPrivateCount -gt 0 ]]; then
+			echo " ** $extPrivateCount Private **"
+			echo 
+			echo "${extPrivateFound[*]}"
+			echo 
+		fi
+		echo "-------------------------------------------------------------------------------------------------------"
+	fi
 	echo
 	echo "$intTotal Functions found internally that are called"
 	echo
 	echo "-------------------------------------------------------------------------------------------------------"
-	echo
-	echo " ** $intRemoteCount Remote **"
-	echo
-	echo "${intRemoteFound[*]}"
-	echo
-	echo " ** $intPublicCount Public **"
-	echo
-	echo "${intPublicFound[*]}"
-	echo
-	echo " ** $intPrivateCount Private **"
-	echo 
-	echo "${intPrivateFound[*]}"
-	echo 
-	echo "-------------------------------------------------------------------------------------------------------"
+	if [[ $intTotal -gt 0 ]]; then
+		echo
+		if [[ $intRemoteCount -gt 0 ]]; then
+			echo " ** $intRemoteCount Remote **"
+			echo
+			echo "${intRemoteFound[*]}"
+			echo
+		fi
+		if [[ $intPublicCount -gt 0 ]]; then
+			echo " ** $intPublicCount Public **"
+			echo
+			echo "${intPublicFound[*]}"
+			echo
+		fi
+		if [[ $intPrivateCount -gt 0 ]]; then
+			echo " ** $intPrivateCount Private **"
+			echo 
+			echo "${intPrivateFound[*]}"
+			echo 
+		fi
+		echo "-------------------------------------------------------------------------------------------------------"
+	fi
 	echo
 	echo "$instantiatedTotal Instantiations"
 	echo "$fuzzyTotal Fuzzy instantiations"
 	echo "$totalNotFound Functions out of $totalCount NOT called by anything anywhere in $urlCall"
 	echo 
-	echo "-------------------------------------------------------------------------------------------------------"
+	if [[ $totalNotFound -gt 0 ]]; then
+		echo "-------------------------------------------------------------------------------------------------------"
+		echo
+		if [[ $remoteNFCount -gt 0 ]]; then
+			echo " ** $remoteNFCount Remote **"
+			echo
+			echo "${remoteNotFound[*]}"
+			echo
+		fi
+		if [[ $publicNFCount -gt 0 ]]; then
+			echo " ** $publicNFCount Public **"
+			echo
+			echo "${publicNotFound[*]}"
+			echo
+		fi
+		if [[ $privateNFCount -gt 0 ]]; then
+			echo " ** $privateNFCount Private **"
+			echo 
+			echo "${privateNotFound[*]}"
+			echo 
+		fi
+		echo "-------------------------------------------------------------------------------------------------------"
+	fi
 	echo
-	echo " ** $remoteNFCount Remote **"
-	echo
-	echo "${remoteNotFound[*]}"
-	echo
-	echo " ** $publicNFCount Public **"
-	echo
-	echo "${publicNotFound[*]}"
-	echo
-	echo " ** $privateNFCount Private **"
-	echo 
-	echo "${privateNotFound[*]}"
-	echo 
-	echo "-------------------------------------------------------------------------------------------------------"
-	echo
-
-	#echo "Filename: "$filename" FolderPath: "$folderpath" Lines of code: "$lines" instantiated: "$instantiatedTotal" functions total: "$totalCount" remote: "$remoteCount" remote unused: "$remoteNFCount" public: "$publicCount" public unused: "$publicNFCount" private: "$privateCount" private unused: "$privateNFCount
 	
 	printf '%s\n' "$filename,$folderpath,$lines,$instantiatedTotal,$totalCount,$remoteCount,$remoteNFCount,$publicCount,$publicNFCount,$privateCount,$privateNFCount" >> summary.csv
 
